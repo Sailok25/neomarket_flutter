@@ -7,6 +7,7 @@ import 'upload_product_screen.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'payment_screen.dart';
+import 'start_screen.dart';
 
 void main() {
   runApp(NeoMarketApp());
@@ -23,7 +24,7 @@ class NeoMarketApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
+      initialRoute: '/start',
       routes: {
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
@@ -33,6 +34,7 @@ class NeoMarketApp extends StatelessWidget {
         '/productDetail': (context) => ProductDetailScreen(),
         '/cart': (context) => CartScreen(),
         '/payment': (context) => PaymentScreen(),
+        '/start': (context) => StartScreen(),
       },
     );
   }
