@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:neomarket_flutter/conexio.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -18,25 +19,34 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isNotEmpty && password.isNotEmpty) {
       try {
         var result = await _dbConnection.executeQuery(
-          'SELECT * FROM nm_usuarios WHERE email = :email AND contrasena = :password',
-          {'email': email, 'password': password},
+          'SELECT nombre, contrasena FROM nm_usuarios WHERE email = :email',
+          {'email': email},
         );
 
         if (result?.rows.isNotEmpty == true) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Login correcto!")));
-          // Navigate to home screen or perform other actions
-          Navigator.pushNamed(context, '/home');
+          var row = result!.rows.first.assoc();
+          var name = row['nombre'];
+          var hashedPassword = row['contrasena'];
+
+          if (hashedPassword != null && BCrypt.checkpw(password, hashedPassword)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Login correcto! Bienvenido, $name")),
+            );
+            Navigator.pushNamed(context, '/home');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Correo o contraseña incorrectos.")),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Correo o contraseña incorrectos.")),
           );
         }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
