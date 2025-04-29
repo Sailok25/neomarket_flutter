@@ -55,7 +55,23 @@ class HomeScreen extends StatelessWidget {
                 Navigator.pushNamed(context, '/favoritos');
               },
             ),
-            Divider( // Divider para separar las opciones principales del botón de cerrar sesión
+            ListTile(
+              leading: Icon(Icons.notifications),
+              title: Text('Notificaciones'),
+              onTap: () {
+                // Navegar a la pantalla de notificaciones
+                Navigator.pushNamed(context, '/notifications');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.help),
+              title: Text('Ayuda'),
+              onTap: () {
+                // Navegar a la pantalla de ayuda
+                Navigator.pushNamed(context, '/help');
+              },
+            ),
+            Divider(
               height: 20,
               thickness: 1,
               indent: 16,
