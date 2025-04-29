@@ -8,6 +8,7 @@ import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'payment_screen.dart';
 import 'start_screen.dart';
+import 'favorites_screen.dart';
 
 void main() {
   runApp(NeoMarketApp());
@@ -35,6 +36,7 @@ class NeoMarketApp extends StatelessWidget {
         '/cart': (context) => CartScreen(),
         '/payment': (context) => PaymentScreen(),
         '/start': (context) => StartScreen(),
+        '/favoritos': (context) => FavoritesScreen(),
       },
     );
   }
