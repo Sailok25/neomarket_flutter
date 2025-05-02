@@ -1,6 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:neomarket_flutter/conexio.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseConnection _dbConnection = DatabaseConnection();
+  List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _filteredProducts = [];
+  String _selectedFilter = 'Todos';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    try {
+      var result = await _dbConnection.executeQuery('SELECT * FROM nm_productos');
+      if (result != null && result.rows.isNotEmpty) {
+        setState(() {
+          _products = result.rows.map((row) => row.assoc()).toList();
+          _filteredProducts = _products;
+        });
+      }
+    } catch (e) {
+      print('Error fetching products: $e');
+    }
+  }
+
+  void _applyFilter(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+      switch (filter) {
+        case 'Precio':
+          _filteredProducts = List.from(_products)
+            ..sort((a, b) => a['precio'].compareTo(b['precio']));
+          break;
+        case 'A-Z':
+          _filteredProducts = List.from(_products)
+            ..sort((a, b) => a['nombre'].compareTo(b['nombre']));
+          break;
+        case 'Marca':
+          _filteredProducts = List.from(_products)
+            ..sort((a, b) => a['marca'].compareTo(b['marca']));
+          break;
+        default:
+          _filteredProducts = _products;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +80,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.person),
               title: Text('Perfil'),
               onTap: () {
-                // Navegar a la pantalla de perfil
                 Navigator.pushNamed(context, '/profile');
               },
             ),
@@ -35,7 +87,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.shopping_cart),
               title: Text('Cesta'),
               onTap: () {
-                // Navegar a la pantalla de cesta
                 Navigator.pushNamed(context, '/cart');
               },
             ),
@@ -43,7 +94,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.upload_file),
               title: Text('Subir producto'),
               onTap: () {
-                // Navegar a la pantalla de subir producto
                 Navigator.pushNamed(context, '/upload');
               },
             ),
@@ -51,7 +101,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.favorite),
               title: Text('Favoritos'),
               onTap: () {
-                // Navegar a la pantalla de favoritos
                 Navigator.pushNamed(context, '/favoritos');
               },
             ),
@@ -59,7 +108,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.notifications),
               title: Text('Notificaciones'),
               onTap: () {
-                // Navegar a la pantalla de notificaciones
                 Navigator.pushNamed(context, '/notifications');
               },
             ),
@@ -67,7 +115,6 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.help),
               title: Text('Ayuda'),
               onTap: () {
-                // Navegar a la pantalla de ayuda
                 Navigator.pushNamed(context, '/help');
               },
             ),
@@ -82,15 +129,109 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.logout),
               title: Text('Cerrar sesión'),
               onTap: () {
-                // Navegar a la pantalla de inicio
                 Navigator.pushNamedAndRemoveUntil(context, '/start', (route) => false);
               },
             ),
           ],
         ),
       ),
-      body: Center(
-        child: Text('Bienvenido a NeoMarket'),
+      body: Column(
+        children: [
+          // Botones de filtro
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                FilterChip(
+                  label: Text('Precio'),
+                  selected: _selectedFilter == 'Precio',
+                  onSelected: (selected) {
+                    if (selected) _applyFilter('Precio');
+                  },
+                ),
+                FilterChip(
+                  label: Text('A-Z'),
+                  selected: _selectedFilter == 'A-Z',
+                  onSelected: (selected) {
+                    if (selected) _applyFilter('A-Z');
+                  },
+                ),
+                FilterChip(
+                  label: Text('Marca'),
+                  selected: _selectedFilter == 'Marca',
+                  onSelected: (selected) {
+                    if (selected) _applyFilter('Marca');
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Productos en formato de tarjetas
+          Expanded(
+            child: _filteredProducts.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8.0,
+                      mainAxisSpacing: 8.0,
+                    ),
+                    itemCount: _filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = _filteredProducts[index];
+                      return Card(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/productDetail',
+                              arguments: product,
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Imagen del producto
+                              if (product['imagenes'] != null)
+                                Image.network(
+                                  product['imagenes'],
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: 150,
+                                ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Nombre del producto
+                                    Text(
+                                      product['nombre'],
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Precio
+                                    Text(
+                                      '${product['precio']}€',
+                                      style: TextStyle(fontSize: 14, color: Colors.green),
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Marca
+                                    Text(
+                                      'Marca: ${product['marca']}',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
