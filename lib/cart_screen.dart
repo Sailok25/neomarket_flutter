@@ -16,11 +16,27 @@ class CartScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Código promocional',
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Código promocional',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0), // Rounded corners
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8), // Space between the TextField and the Button
+                    IconButton(
+                      icon: Icon(Icons.arrow_forward), // Using an icon for the button
+                      onPressed: () {
+                        // Action to verify the promotional code
+                        print('Verificando tu codigo promocional...');
+                      },
+                    ),
+                  ],
                 ),
                 SizedBox(height: 16),
                 Row(
@@ -49,7 +65,7 @@ class CartScreen extends StatelessWidget {
                 SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    // Acción para realizar el pago (mockup)
+                    // Action to proceed to payment
                     Navigator.pushNamed(context, '/payment');
                   },
                   child: Text('Realizar Pago'),
