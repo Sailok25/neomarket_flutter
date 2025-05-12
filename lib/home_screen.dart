@@ -11,6 +11,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _filteredProducts = [];
   String _selectedFilter = 'Todos';
+  int? userId; // Variable to store the user ID
 
   @override
   void initState() {
@@ -18,9 +19,23 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchProducts();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Retrieve the user ID from the arguments
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    if (args != null) {
+      // Convert the user ID from a string to an integer
+      userId = int.tryParse(args['userId'].toString());
+      print('User ID: $userId'); // Print the user ID for verification
+    }
+  }
+
   Future<void> _fetchProducts() async {
     try {
-      var result = await _dbConnection.executeQuery('SELECT * FROM nm_productos');
+      var result = await _dbConnection.executeQuery(
+        'SELECT * FROM nm_productos',
+      );
       if (result != null && result.rows.isNotEmpty) {
         setState(() {
           _products = result.rows.map((row) => row.assoc()).toList();
@@ -59,28 +74,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Inicio'),
+        actions: [
+          // Display the user ID in the AppBar
+        ],
       ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
             DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.deepPurple,
-              ),
+              decoration: BoxDecoration(color: Colors.deepPurple),
               child: Text(
                 'Menú',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
             ListTile(
               leading: Icon(Icons.person),
               title: Text('Perfil'),
               onTap: () {
-                Navigator.pushNamed(context, '/profile');
+                Navigator.pushNamed(
+                  context,
+                  '/profile',
+                  arguments: {'userId': userId},
+                );
               },
             ),
             ListTile(
@@ -101,7 +118,13 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: Icon(Icons.favorite),
               title: Text('Favoritos'),
               onTap: () {
-                Navigator.pushNamed(context, '/favoritos');
+                Navigator.pushNamed(
+                  context,
+                  '/favoritos',
+                  arguments: {
+                    'userId': userId,
+                  }, // Asegúrate de pasar el userId aquí
+                );
               },
             ),
             ListTile(
@@ -129,7 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: Icon(Icons.logout),
               title: Text('Cerrar sesión'),
               onTap: () {
-                Navigator.pushNamedAndRemoveUntil(context, '/start', (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/start',
+                  (route) => false,
+                );
               },
             ),
           ],
@@ -168,68 +195,76 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // Productos en formato de tarjetas
           Expanded(
-            child: _filteredProducts.isEmpty
-                ? Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 8.0,
-                      mainAxisSpacing: 8.0,
-                    ),
-                    itemCount: _filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = _filteredProducts[index];
-                      return Card(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/productDetail',
-                              arguments: product,
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Imagen del producto
-                              if (product['imagenes'] != null)
-                                Image.network(
-                                  product['imagenes'],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: 150,
+            child:
+                _filteredProducts.isEmpty
+                    ? Center(child: CircularProgressIndicator())
+                    : GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                      ),
+                      itemCount: _filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _filteredProducts[index];
+                        return Card(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/productDetail',
+                                arguments: [product, userId],
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Imagen del producto
+                                if (product['imagenes'] != null)
+                                  Image.network(
+                                    product['imagenes'],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 150,
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Nombre del producto
+                                      Text(
+                                        product['nombre'],
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      // Precio
+                                      Text(
+                                        '${product['precio']}€',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      // Marca
+                                      Text(
+                                        'Marca: ${product['marca']}',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Nombre del producto
-                                    Text(
-                                      product['nombre'],
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(height: 4),
-                                    // Precio
-                                    Text(
-                                      '${product['precio']}€',
-                                      style: TextStyle(fontSize: 14, color: Colors.green),
-                                    ),
-                                    SizedBox(height: 4),
-                                    // Marca
-                                    Text(
-                                      'Marca: ${product['marca']}',
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

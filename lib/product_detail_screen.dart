@@ -1,164 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:neomarket_flutter/conexio.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({Key? key}) : super(key: key);
-
   @override
   _ProductDetailScreenState createState() => _ProductDetailScreenState();
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  int quantity = 0;
+  final DatabaseConnection _dbConnection = DatabaseConnection();
+  Map<String, dynamic>? product;
+  int? userId;
   bool isFavorite = false;
 
-  void addToCart() {
-    // Lógica para añadir al carrito
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Producto añadido al carrito')),
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)!.settings.arguments as List?;
+    if (args != null && args.length >= 2) {
+      product = args[0] as Map<String, dynamic>;
+      userId = args[1] as int?;
+      _checkIfFavorite();
+    }
   }
 
-  void toggleFavorite() {
-    setState(() {
-      isFavorite = !isFavorite;
-    });
-    // Lógica para guardar en favoritos
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(isFavorite ? 'Producto añadido a favoritos' : 'Producto eliminado de favoritos')),
-    );
+  Future<void> _checkIfFavorite() async {
+    if (userId == null || product == null) return;
+
+    try {
+      var result = await _dbConnection.executeQuery(
+        'SELECT * FROM nm_favoritos WHERE id_usuario = :userId AND id_producto = :productId',
+        {'userId': userId, 'productId': product!['id_producto']},
+      );
+      if (result != null && result.rows.isNotEmpty) {
+        setState(() {
+          isFavorite = true;
+        });
+      }
+    } catch (e) {
+      print('Error checking favorite status: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (userId == null || product == null) return;
+
+    try {
+      if (isFavorite) {
+        await _dbConnection.executeQuery(
+          'DELETE FROM nm_favoritos WHERE id_usuario = :userId AND id_producto = :productId',
+          {'userId': userId, 'productId': product!['id_producto']},
+        );
+      } else {
+        await _dbConnection.executeQuery(
+          'INSERT INTO nm_favoritos (id_usuario, id_producto) VALUES (:userId, :productId)',
+          {'userId': userId, 'productId': product!['id_producto']},
+        );
+      }
+      setState(() {
+        isFavorite = !isFavorite;
+      });
+    } catch (e) {
+      print('Error toggling favorite status: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final product = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    if (product == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Detalles del Producto'),
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detalle del producto'),
+        title: Text('Detalles del Producto'),
       ),
-      body: SingleChildScrollView(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen del producto
-            if (product['imagenes'] != null)
+            if (product!['imagenes'] != null)
               Image.network(
-                product['imagenes'],
+                product!['imagenes'],
                 fit: BoxFit.cover,
                 width: double.infinity,
+                height: 200,
               ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Nombre del producto
-                  Text(
-                    product['nombre'],
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  // Marca del producto
-                  Text(
-                    product['marca'],
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  // Precio
-                  Row(
-                    children: [
-                      Text(
-                        '${product['precio']}€',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      Spacer(),
-                      // Botones de cantidad
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () {
-                              setState(() {
-                                quantity++;
-                              });
-                            },
-                          ),
-                          Text('$quantity'),
-                          IconButton(
-                            icon: Icon(Icons.remove),
-                            onPressed: () {
-                              setState(() {
-                                if (quantity > 0) quantity--;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  // Calificación
-                  Row(
-                    children: [
-                      Icon(Icons.star, color: Colors.amber),
-                      SizedBox(width: 4),
-                      Text(
-                        '${product['calificacion']} (${product['numero_reviews']} Reviews)',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  // Descripción
-                  Text(
-                    product['descripcion'],
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  SizedBox(height: 16),
-                  // Botones de añadir al carrito y guardar a favoritos
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: addToCart,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          ),
-                          child: Text('Añadir al carrito'),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      IconButton(
-                        icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-                        onPressed: toggleFavorite,
-                        iconSize: 32,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  // Sección de comentarios
-                  Text(
-                    'Reseñas',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  // Lista de comentarios (simulada)
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: product['comentarios']?.length ?? 0,
-                    itemBuilder: (context, index) {
-                      final comment = product['comentarios'][index];
-                      return ListTile(
-                        title: Text(comment['usuario']),
-                        subtitle: Text(comment['texto']),
-                      );
-                    },
-                  ),
-                ],
+            SizedBox(height: 16),
+            Text(
+              product!['nombre'],
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '${product!['precio']}€',
+              style: TextStyle(fontSize: 20, color: Colors.green),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Marca: ${product!['marca']}',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text(
+              product!['descripcion'],
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            IconButton(
+              icon: Icon(
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: isFavorite ? Colors.red : null,
               ),
+              onPressed: _toggleFavorite,
             ),
           ],
         ),

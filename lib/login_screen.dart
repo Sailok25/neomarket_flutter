@@ -12,48 +12,54 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   final DatabaseConnection _dbConnection = DatabaseConnection();
 
-  void _login() async {
-    final email = emailController.text;
-    final password = passwordController.text;
+void _login() async {
+  final email = emailController.text;
+  final password = passwordController.text;
 
-    if (email.isNotEmpty && password.isNotEmpty) {
-      try {
-        var result = await _dbConnection.executeQuery(
-          'SELECT nombre, contrasena FROM nm_usuarios WHERE email = :email',
-          {'email': email},
-        );
+  if (email.isNotEmpty && password.isNotEmpty) {
+    try {
+      var result = await _dbConnection.executeQuery(
+        'SELECT id_usuario, nombre, contrasena FROM nm_usuarios WHERE email = :email',
+        {'email': email},
+      );
 
-        if (result?.rows.isNotEmpty == true) {
-          var row = result!.rows.first.assoc();
-          var name = row['nombre'];
-          var hashedPassword = row['contrasena'];
+      if (result?.rows.isNotEmpty == true) {
+        var row = result!.rows.first.assoc();
+        var userId = row['id_usuario']; // id_usurio és l'ID únic de l'usuari
+        var name = row['nombre'];
+        var hashedPassword = row['contrasena'];
 
-          if (hashedPassword != null && BCrypt.checkpw(password, hashedPassword)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Login correcto! Bienvenido, $name")),
-            );
-            Navigator.pushNamed(context, '/home');
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Correo o contraseña incorrectos.")),
-            );
-          }
+        if (hashedPassword != null && BCrypt.checkpw(password, hashedPassword)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Login correcto! Bienvenido, $name")),
+          );
+          Navigator.pushNamed(
+            context,
+            '/home',
+            arguments: {'userId': userId}, // Pass the user ID as an argument
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Correo o contraseña incorrectos.")),
           );
         }
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+          const SnackBar(content: Text("Correo o contraseña incorrectos.")),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Todos los campos son obligatorios.")),
+        SnackBar(content: Text("Error: $e")),
       );
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Todos los campos son obligatorios.")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
