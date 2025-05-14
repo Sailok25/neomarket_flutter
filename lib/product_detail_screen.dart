@@ -11,6 +11,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Map<String, dynamic>? product;
   int? userId;
   bool isFavorite = false;
+  int quantity = 1; // Variable para manejar la cantidad
 
   @override
   void didChangeDependencies() {
@@ -64,6 +65,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  void _incrementQuantity() {
+    setState(() {
+      quantity++;
+    });
+  }
+
+  void _decrementQuantity() {
+    if (quantity > 1) {
+      setState(() {
+        quantity--;
+      });
+    }
+  }
+
+  Future<void> _addToCart() async {
+    if (userId == null || product == null) return;
+
+    try {
+      await _dbConnection.executeQuery(
+        'INSERT INTO nm_cesta (id_usuario, id_producto, cantidad) VALUES (:userId, :productId, :quantity)',
+        {
+          'userId': userId,
+          'productId': product!['id_producto'],
+          'quantity': quantity, // Usar la cantidad seleccionada
+        },
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Producto añadido al carrito')),
+      );
+    } catch (e) {
+      print('Error adding product to cart: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al añadir el producto al carrito')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (product == null) {
@@ -97,9 +135,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text(
-              '${product!['precio']}€',
-              style: TextStyle(fontSize: 20, color: Colors.green),
+            Row(
+              children: [
+                Text(
+                  '${product!['precio']}€',
+                  style: TextStyle(fontSize: 20, color: Colors.green),
+                ),
+                SizedBox(width: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.remove),
+                      onPressed: _decrementQuantity,
+                    ),
+                    Text(quantity.toString()),
+                    IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: _incrementQuantity,
+                    ),
+                  ],
+                ),
+              ],
             ),
             SizedBox(height: 8),
             Text(
@@ -111,13 +167,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               product!['descripcion'],
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 16),
-            IconButton(
-              icon: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: isFavorite ? Colors.red : null,
-              ),
-              onPressed: _toggleFavorite,
+            Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? Colors.red : null,
+                  ),
+                  onPressed: _toggleFavorite,
+                ),
+                ElevatedButton(
+                  onPressed: _addToCart,
+                  child: Text('Añadir al carrito'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

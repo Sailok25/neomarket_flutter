@@ -1,6 +1,93 @@
 import 'package:flutter/material.dart';
+import 'conexio.dart'; // Asegúrate de importar tu clase de conexión a la base de datos
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
+  final int userId; // Añadir userId como parámetro
+
+  CartScreen({required this.userId}); // Constructor para recibir el userId
+
+  @override
+  _CartScreenState createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  TextEditingController _promoCodeController = TextEditingController();
+  double subtotal = 0.0;
+  double iva = 0.0;
+  double total = 0.0;
+  double discount = 0.0; // Inicializa el descuento en 0.0
+  bool isPromoCodeValid = false;
+  final DatabaseConnection _dbConnection = DatabaseConnection();
+  List<Map<String, dynamic>> _cartItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCartItems();
+  }
+
+  Future<void> _fetchCartItems() async {
+    try {
+      print('User ID: ${widget.userId}'); // Imprimir el userId para verificar
+      var result = await _dbConnection.executeQuery(
+        'SELECT p.*, c.cantidad FROM nm_productos p JOIN nm_cesta c ON p.id_producto = c.id_producto WHERE c.id_usuario = :userId',
+        {'userId': widget.userId}, // Usar el userId del widget
+      );
+      if (result != null && result.rows.isNotEmpty) {
+        setState(() {
+          _cartItems = result.rows.map((row) => row.assoc()).toList();
+          _calculateSubtotal();
+        });
+      } else {
+        print('No se encontraron productos en la cesta para el usuario actual.');
+      }
+    } catch (e) {
+      print('Error fetching cart items: $e');
+    }
+  }
+
+  void _calculateSubtotal() {
+    subtotal = _cartItems.fold(0, (sum, item) {
+      double precio = double.tryParse(item['precio'].toString()) ?? 0.0;
+      int cantidad = int.tryParse(item['cantidad'].toString()) ?? 0;
+      return sum + (precio * cantidad);
+    });
+    _updateTotal();
+  }
+
+  Future<void> _verifyPromoCode() async {
+    final String promoCode = _promoCodeController.text;
+    try {
+      var result = await _dbConnection.executeQuery(
+        'SELECT * FROM nm_codigos WHERE codigo = :codigo AND estado = "activo"',
+        {'codigo': promoCode}, // Asegúrate de pasar los parámetros como un mapa
+      );
+
+      if (result != null && result.rows.isNotEmpty) {
+        // Convertir el valor de String a double
+        var discountValue = result.rows.first.assoc()['valor_descuento'];
+        setState(() {
+          discount = double.tryParse(discountValue.toString()) ?? 0.0;
+          isPromoCodeValid = true;
+          _updateTotal();
+        });
+      } else {
+        setState(() {
+          isPromoCodeValid = false;
+          discount = 0.0; // Asegúrate de que el descuento se establece en 0.0 si no es válido
+          _updateTotal();
+        });
+      }
+    } catch (e) {
+      print('Error verifying promo code: $e');
+    }
+  }
+
+  void _updateTotal() {
+    iva = subtotal * 0.21;
+    total = subtotal + iva - discount;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -8,9 +95,29 @@ class CartScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: Center(
-              child: Text('Aún no has añadido productos a tu cesta'),
-            ),
+            child: _cartItems.isEmpty
+                ? Center(
+                    child: Text('Aún no has añadido productos a tu cesta'),
+                  )
+                : ListView.builder(
+                    itemCount: _cartItems.length,
+                    itemBuilder: (context, index) {
+                      final item = _cartItems[index];
+                      return ListTile(
+                        leading: item['imagenes'] != null
+                            ? Image.network(
+                                item['imagenes'],
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(width: 50, height: 50, color: Colors.grey),
+                        title: Text(item['nombre']),
+                        subtitle: Text('Cantidad: ${item['cantidad']}'),
+                        trailing: Text('${(double.tryParse(item['precio'].toString()) ?? 0.0 * item['cantidad']).toStringAsFixed(2)}€'),
+                      );
+                    },
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -20,21 +127,19 @@ class CartScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: TextField(
+                        controller: _promoCodeController,
                         decoration: InputDecoration(
                           labelText: 'Código promocional',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0), // Rounded corners
+                            borderRadius: BorderRadius.circular(10.0),
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(width: 8), // Space between the TextField and the Button
+                    SizedBox(width: 8),
                     IconButton(
-                      icon: Icon(Icons.arrow_forward), // Using an icon for the button
-                      onPressed: () {
-                        // Action to verify the promotional code
-                        print('Verificando tu codigo promocional...');
-                      },
+                      icon: Icon(Icons.arrow_forward),
+                      onPressed: _verifyPromoCode,
                     ),
                   ],
                 ),
@@ -43,7 +148,7 @@ class CartScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Subtotal:', style: TextStyle(fontSize: 16)),
-                    Text('\$0.00', style: TextStyle(fontSize: 16)),
+                    Text('\$${subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -51,7 +156,15 @@ class CartScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('IVA (21%):', style: TextStyle(fontSize: 16)),
-                    Text('\$0.00', style: TextStyle(fontSize: 16)),
+                    Text('\$${iva.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Descuento:', style: TextStyle(fontSize: 16)),
+                    Text('-\$${discount.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -59,13 +172,12 @@ class CartScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('\$0.00', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('\$${total.toStringAsFixed(2)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    // Action to proceed to payment
                     Navigator.pushNamed(context, '/payment');
                   },
                   child: Text('Realizar Pago'),

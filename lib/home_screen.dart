@@ -104,7 +104,18 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: Icon(Icons.shopping_cart),
               title: Text('Cesta'),
               onTap: () {
-                Navigator.pushNamed(context, '/cart');
+                if (userId != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/cart',
+                    arguments: userId, // Asegúrate de pasar el userId aquí
+                  );
+                } else {
+                  // Manejar el caso en el que userId es null, por ejemplo, redirigir a una pantalla de error o mostrar un mensaje
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: No se proporcionó un ID de usuario válido.')),
+                  );
+                }
               },
             ),
             ListTile(
