@@ -30,7 +30,13 @@ class _CartScreenState extends State<CartScreen> {
     try {
       print('User ID: ${widget.userId}'); // Imprimir el userId para verificar
       var result = await _dbConnection.executeQuery(
-        'SELECT p.*, c.cantidad FROM nm_productos p JOIN nm_cesta c ON p.id_producto = c.id_producto WHERE c.id_usuario = :userId',
+        '''
+        SELECT p.*, SUM(c.cantidad) as cantidad
+        FROM nm_productos p
+        JOIN nm_cesta c ON p.id_producto = c.id_producto
+        WHERE c.id_usuario = :userId
+        GROUP BY p.id_producto
+        ''',
         {'userId': widget.userId}, // Usar el userId del widget
       );
       if (result != null && result.rows.isNotEmpty) {
@@ -85,7 +91,22 @@ class _CartScreenState extends State<CartScreen> {
 
   void _updateTotal() {
     iva = subtotal * 0.21;
-    total = subtotal + iva - discount;
+    total = subtotal + iva - discount; // Aplicar el descuento una sola vez al total
+  }
+
+  Future<void> _removeItemFromCart(int productId) async {
+    try {
+      await _dbConnection.executeQuery(
+        'DELETE FROM nm_cesta WHERE id_producto = :productId AND id_usuario = :userId',
+        {
+          'productId': productId, // Asegúrate de que productId es un entero
+          'userId': widget.userId,
+        },
+      );
+      _fetchCartItems(); // Refresh the cart items after deletion
+    } catch (e) {
+      print('Error removing item from cart: $e');
+    }
   }
 
   @override
@@ -114,7 +135,19 @@ class _CartScreenState extends State<CartScreen> {
                             : Container(width: 50, height: 50, color: Colors.grey),
                         title: Text(item['nombre']),
                         subtitle: Text('Cantidad: ${item['cantidad']}'),
-                        trailing: Text('${(double.tryParse(item['precio'].toString()) ?? 0.0 * item['cantidad']).toStringAsFixed(2)}€'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                int productId = int.parse(item['id_producto'].toString());
+                                _removeItemFromCart(productId);
+                              },
+                            ),
+                            Text('${(double.tryParse(item['precio'].toString()) ?? 0.0 * item['cantidad']).toStringAsFixed(2)}€'),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -148,7 +181,7 @@ class _CartScreenState extends State<CartScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Subtotal:', style: TextStyle(fontSize: 16)),
-                    Text('\$${subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+                    Text('€${subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -156,7 +189,7 @@ class _CartScreenState extends State<CartScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('IVA (21%):', style: TextStyle(fontSize: 16)),
-                    Text('\$${iva.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+                    Text('€${iva.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -164,7 +197,7 @@ class _CartScreenState extends State<CartScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Descuento:', style: TextStyle(fontSize: 16)),
-                    Text('-\$${discount.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+                    Text('-€${discount.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -172,7 +205,7 @@ class _CartScreenState extends State<CartScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('\$${total.toStringAsFixed(2)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('€${total.toStringAsFixed(2)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 SizedBox(height: 16),
