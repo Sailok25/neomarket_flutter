@@ -91,9 +91,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'quantity': quantity, // Usar la cantidad seleccionada
         },
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Producto añadido al carrito')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Producto añadido al carrito')));
     } catch (e) {
       print('Error adding product to cart: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,17 +106,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     if (product == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text('Detalles del Producto'),
-        ),
+        appBar: AppBar(title: Text('Detalles del Producto')),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Detalles del Producto'),
-      ),
+      appBar: AppBar(title: Text('Detalles del Producto')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -159,14 +155,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             SizedBox(height: 8),
             Text(
-              'Marca: ${product!['marca']}',
+  'Marca: ${product!['nombre_marca']} ${product!['modelo'] ?? ''}',
+  style: TextStyle(fontSize: 16),
+),
+
+            SizedBox(height: 8),
+            Text(
+              'Categoría: ${product!['categoria']}',
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 16),
-            Text(
-              product!['descripcion'],
-              style: TextStyle(fontSize: 16),
-            ),
+            Text(product!['descripcion'], style: TextStyle(fontSize: 16)),
             Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

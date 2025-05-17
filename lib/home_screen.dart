@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchProducts() async {
     try {
       var result = await _dbConnection.executeQuery(
-        'SELECT * FROM nm_productos',
+        'SELECT p.*, m.nombre_marca FROM nm_productos p LEFT JOIN nm_marcas m ON p.marca = m.id_marca',
       );
       if (result != null && result.rows.isNotEmpty) {
         setState(() {
@@ -113,7 +113,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   // Manejar el caso en el que userId es null, por ejemplo, redirigir a una pantalla de error o mostrar un mensaje
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: No se proporcionó un ID de usuario válido.')),
+                    SnackBar(
+                      content: Text(
+                        'Error: No se proporcionó un ID de usuario válido.',
+                      ),
+                    ),
                   );
                 }
               },
@@ -264,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       SizedBox(height: 4),
                                       // Marca
                                       Text(
-                                        'Marca: ${product['marca']}',
+                                        'Marca: ${product['nombre_marca']}',
                                         style: TextStyle(fontSize: 14),
                                       ),
                                     ],

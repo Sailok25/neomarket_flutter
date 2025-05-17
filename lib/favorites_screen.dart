@@ -33,17 +33,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       print('Fetching favorite products for user ID: $userId'); // Debug print
       var result = await _dbConnection.executeQuery(
         '''
-        SELECT p.*
-        FROM nm_productos p
-        JOIN nm_favoritos f ON p.id_producto = f.id_producto
-        WHERE f.id_usuario = :userId
-        ''',
+      SELECT p.*, m.nombre_marca
+      FROM nm_productos p
+      JOIN nm_favoritos f ON p.id_producto = f.id_producto
+      LEFT JOIN nm_marcas m ON p.marca = m.id_marca
+      WHERE f.id_usuario = :userId
+      ''',
         {'userId': userId},
       );
       if (result != null && result.rows.isNotEmpty) {
         setState(() {
           _favoriteProducts = result.rows.map((row) => row.assoc()).toList();
-          print('Favorite products fetched: ${_favoriteProducts.length}'); // Debug print
+          print(
+            'Favorite products fetched: ${_favoriteProducts.length}',
+          ); // Debug print
         });
       } else {
         print('No favorite products found'); // Debug print
@@ -55,76 +58,79 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('Building FavoritesScreen with ${_favoriteProducts.length} products'); // Debug print
+    print(
+      'Building FavoritesScreen with ${_favoriteProducts.length} products',
+    ); // Debug print
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Favoritos'),
-      ),
-      body: _favoriteProducts.isEmpty
-          ? Center(child: Text('No tienes productos favoritos.'))
-          : GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8.0,
-                mainAxisSpacing: 8.0,
-              ),
-              itemCount: _favoriteProducts.length,
-              itemBuilder: (context, index) {
-                final product = _favoriteProducts[index];
-                print('Building product card for: ${product['nombre']}'); // Debug print
-                return Card(
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/productDetail',
-                        arguments: [product, userId],
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (product['imagenes'] != null)
-                          Image.network(
-                            product['imagenes'],
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: 150,
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product['nombre'],
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+      appBar: AppBar(title: Text('Favoritos')),
+      body:
+          _favoriteProducts.isEmpty
+              ? Center(child: Text('No tienes productos favoritos.'))
+              : GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8.0,
+                  mainAxisSpacing: 8.0,
+                ),
+                itemCount: _favoriteProducts.length,
+                itemBuilder: (context, index) {
+                  final product = _favoriteProducts[index];
+                  print(
+                    'Building product card for: ${product['nombre']}',
+                  ); // Debug print
+                  return Card(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/productDetail',
+                          arguments: [product, userId],
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (product['imagenes'] != null)
+                            Image.network(
+                              product['imagenes'],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: 150,
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product['nombre'],
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '${product['precio']}€',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.green,
+                                SizedBox(height: 4),
+                                Text(
+                                  '${product['precio']}€',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.green,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Marca: ${product['marca']}',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
+                                SizedBox(height: 4),
+                                Text(
+                                  'Marca: ${product['nombre_marca']}',
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
     );
   }
 }
