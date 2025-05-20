@@ -32,7 +32,8 @@ class NeoMarketApp extends StatelessWidget {
       initialRoute: '/start',
       onGenerateRoute: (settings) {
         if (settings.name == '/cart') {
-          final userId = settings.arguments as int?; // Obtener el userId de los argumentos
+          final userId =
+              settings.arguments as int?; // Obtener el userId de los argumentos
           if (userId != null) {
             return MaterialPageRoute(
               builder: (context) => CartScreen(userId: userId),
@@ -40,11 +41,14 @@ class NeoMarketApp extends StatelessWidget {
           } else {
             // Manejar el caso en el que userId es null, por ejemplo, redirigir a una pantalla de error o mostrar un mensaje
             return MaterialPageRoute(
-              builder: (context) => Scaffold(
-                body: Center(
-                  child: Text('Error: No se proporcionó un ID de usuario válido.'),
-                ),
-              ),
+              builder:
+                  (context) => Scaffold(
+                    body: Center(
+                      child: Text(
+                        'Error: No se proporcionó un ID de usuario válido.',
+                      ),
+                    ),
+                  ),
             );
           }
         }

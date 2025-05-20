@@ -20,6 +20,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (args != null && args.length >= 2) {
       product = args[0] as Map<String, dynamic>;
       userId = args[1] as int?;
+      print('Product Data: $product'); // Imprime los datos del producto en la consola
       _checkIfFavorite();
     }
   }
@@ -102,6 +103,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  void _showImageDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).pop(); // Cerrar el diálogo al hacer clic en la imagen
+            },
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              child: Image.network(
+                product!['imagenes'],
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Ropa':
+        return Icons.checkroom;
+      case 'Tecnologia':
+        return Icons.phone_android;
+      case 'Hogar':
+        return Icons.home;
+      case 'Deporte':
+        return Icons.sports_soccer;
+      case 'Automovil':
+        return Icons.directions_car;
+      case 'Accesorios':
+        return Icons.watch;
+      default:
+        return Icons.category;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (product == null) {
@@ -119,11 +162,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (product!['imagenes'] != null)
-              Image.network(
-                product!['imagenes'],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: 200,
+              GestureDetector(
+                onTap: _showImageDialog,
+                child: Image.network(
+                  product!['imagenes'],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 200,
+                ),
               ),
             SizedBox(height: 16),
             Text(
@@ -154,15 +200,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ],
             ),
             SizedBox(height: 8),
-            Text(
-  'Marca: ${product!['nombre_marca']} ${product!['modelo'] ?? ''}',
-  style: TextStyle(fontSize: 16),
-),
-
+            Row(
+              children: [
+                Icon(Icons.label, size: 20), // Icono de etiqueta para la marca
+                SizedBox(width: 4),
+                Text(
+                  'Marca: ${product!['nombre_marca']}',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
             SizedBox(height: 8),
-            Text(
-              'Categoría: ${product!['categoria']}',
-              style: TextStyle(fontSize: 16),
+            Row(
+              children: [
+                Icon(_getCategoryIcon(product!['categoria']), size: 20),
+                SizedBox(width: 4),
+                Text(
+                  'Categoría: ${product!['categoria']}',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.model_training, size: 20),
+                SizedBox(width: 4),
+                Text(
+                  'Modelo: ${product!['modelo']}',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
             ),
             SizedBox(height: 16),
             Text(product!['descripcion'], style: TextStyle(fontSize: 16)),

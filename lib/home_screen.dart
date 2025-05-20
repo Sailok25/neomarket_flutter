@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchProducts() async {
     try {
       var result = await _dbConnection.executeQuery(
-        'SELECT p.*, m.nombre_marca FROM nm_productos p LEFT JOIN nm_marcas m ON p.marca = m.id_marca',
+        'SELECT p.*, m.nombre_marca, m.modelo FROM nm_productos p LEFT JOIN nm_marcas m ON p.marca = m.id_marca',
       );
       if (result != null && result.rows.isNotEmpty) {
         setState(() {
@@ -62,6 +62,10 @@ class _HomeScreenState extends State<HomeScreen> {
         case 'Marca':
           _filteredProducts = List.from(_products)
             ..sort((a, b) => a['marca'].compareTo(b['marca']));
+          break;
+        case 'Categoría':
+          _filteredProducts = List.from(_products)
+            ..sort((a, b) => a['categoria'].compareTo(b['categoria']));
           break;
         default:
           _filteredProducts = _products;
@@ -205,81 +209,120 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (selected) _applyFilter('Marca');
                   },
                 ),
+                FilterChip(
+                  label: Text('Categoría'),
+                  selected: _selectedFilter == 'Categoría',
+                  onSelected: (selected) {
+                    if (selected) _applyFilter('Categoría');
+                  },
+                ),
               ],
             ),
           ),
           // Productos en formato de tarjetas
           Expanded(
-            child:
-                _filteredProducts.isEmpty
-                    ? Center(child: CircularProgressIndicator())
-                    : GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 8.0,
-                        mainAxisSpacing: 8.0,
-                      ),
-                      itemCount: _filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _filteredProducts[index];
-                        return Card(
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                '/productDetail',
-                                arguments: [product, userId],
-                              );
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Imagen del producto
-                                if (product['imagenes'] != null)
-                                  Image.network(
+            child: _filteredProducts.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : GridView.builder(
+                    padding: EdgeInsets.all(8.0),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8.0,
+                      mainAxisSpacing: 8.0,
+                      childAspectRatio: 0.7, // Ajusta este valor según sea necesario
+                    ),
+                    itemCount: _filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = _filteredProducts[index];
+                      return Card(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/productDetail',
+                              arguments: [product, userId],
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Imagen del producto
+                              if (product['imagenes'] != null)
+                                Container(
+                                  height: 150, // Altura fija para la imagen
+                                  width: double.infinity,
+                                  child: Image.network(
                                     product['imagenes'],
                                     fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: 150,
-                                  ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Nombre del producto
-                                      Text(
-                                        product['nombre'],
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                    loadingBuilder: (BuildContext context,
+                                        Widget child,
+                                        ImageChunkEvent? loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
                                         ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      // Precio
-                                      Text(
-                                        '${product['precio']}€',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      // Marca
-                                      Text(
-                                        'Marca: ${product['nombre_marca']}',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
+                                      );
+                                    },
+                                    errorBuilder: (BuildContext context,
+                                        Object error, StackTrace? stackTrace) {
+                                      return Icon(Icons.error); // Muestra un icono de error si la imagen no se puede cargar
+                                    },
                                   ),
                                 ),
-                              ],
-                            ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Nombre del producto
+                                    Text(
+                                      product['nombre'],
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Precio
+                                    Text(
+                                      '${product['precio']}€',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Marca
+                                    Text(
+                                      'Marca: ${product['nombre_marca']}',
+                                      style: TextStyle(fontSize: 14),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Categoría
+                                    Text(
+                                      'Categoría: ${product['categoria']}',
+                                      style: TextStyle(fontSize: 14),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

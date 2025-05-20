@@ -124,29 +124,36 @@ class _CartScreenState extends State<CartScreen> {
                     itemCount: _cartItems.length,
                     itemBuilder: (context, index) {
                       final item = _cartItems[index];
-                      return ListTile(
-                        leading: item['imagenes'] != null
-                            ? Image.network(
-                                item['imagenes'],
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(width: 50, height: 50, color: Colors.grey),
-                        title: Text(item['nombre']),
-                        subtitle: Text('Cantidad: ${item['cantidad']}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                int productId = int.parse(item['id_producto'].toString());
-                                _removeItemFromCart(productId);
-                              },
-                            ),
-                            Text('${(double.tryParse(item['precio'].toString()) ?? 0.0 * item['cantidad']).toStringAsFixed(2)}€'),
-                          ],
+                      return Container(
+                        margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey, width: 1.0),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: ListTile(
+                          leading: item['imagenes'] != null
+                              ? Image.network(
+                                  item['imagenes'],
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(width: 50, height: 50, color: Colors.grey),
+                          title: Text(item['nombre']),
+                          subtitle: Text('Cantidad: ${item['cantidad']}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () {
+                                  int productId = int.parse(item['id_producto'].toString());
+                                  _removeItemFromCart(productId);
+                                },
+                              ),
+                              Text('${(double.tryParse(item['precio'].toString()) ?? 0.0 * item['cantidad']).toStringAsFixed(2)}€'),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -210,9 +217,22 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/payment');
-                  },
+                  onPressed: _cartItems.isEmpty
+                      ? null
+                      : () {
+                          Navigator.pushNamed(
+                            context,
+                            '/payment',
+                            arguments: {
+                              'userId': widget.userId,
+                              'cartItems': _cartItems,
+                              'subtotal': subtotal,
+                              'iva': iva,
+                              'total': total,
+                              'discount': discount,
+                            },
+                          );
+                        },
                   child: Text('Realizar Pago'),
                 ),
               ],
