@@ -12,7 +12,7 @@ La aplicación ofrece una experiencia de usuario intuitiva con funciones esencia
 
 ## Instalación
 
-1. Clona el repositorio: `git clone https://github.com/tu-usuario/neomarket_flutter.git`
+1. Clona el repositorio: `git clone https://github.com/Sailok25/neomarket_flutter.git`
 2. Navega al directorio del proyecto: `cd neomarket_flutter`
 3. Instala las dependencias: `flutter pub get`
 
