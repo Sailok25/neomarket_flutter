@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:neomarket_flutter/conexio.dart';
+import 'report_screen.dart'; // Asegúrate de importar la pantalla de reporte
 
 class ProductDetailScreen extends StatefulWidget {
   @override
@@ -20,7 +21,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (args != null && args.length >= 2) {
       product = args[0] as Map<String, dynamic>;
       userId = args[1] as int?;
-      print('Product Data: $product'); // Imprime los datos del producto en la consola
+      print(
+        'Product Data: $product',
+      ); // Imprime los datos del producto en la consola
       _checkIfFavorite();
     }
   }
@@ -40,6 +43,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     } catch (e) {
       print('Error checking favorite status: $e');
+    }
+  }
+
+  Future<bool> _checkIfReported() async {
+    if (userId == null || product == null) return false;
+
+    try {
+      var result = await _dbConnection.executeQuery(
+        'SELECT * FROM nm_advertencias WHERE fk_id_producto = :productId AND id_advertencia = :userId',
+        {'productId': product!['id_producto'], 'userId': userId},
+      );
+      return result != null && result.rows.isNotEmpty;
+    } catch (e) {
+      print('Error checking report status: $e');
+      return false;
     }
   }
 
@@ -110,15 +128,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return Dialog(
           child: GestureDetector(
             onTap: () {
-              Navigator.of(context).pop(); // Cerrar el diálogo al hacer clic en la imagen
+              Navigator.of(
+                context,
+              ).pop(); // Cerrar el diálogo al hacer clic en la imagen
             },
             child: Container(
               width: double.infinity,
               height: double.infinity,
-              child: Image.network(
-                product!['imagenes'],
-                fit: BoxFit.contain,
-              ),
+              child: Image.network(product!['imagenes'], fit: BoxFit.contain),
             ),
           ),
         );
@@ -258,6 +275,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 ),
               ],
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                bool isReported = await _checkIfReported();
+                if (isReported) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ya has reportado este producto')),
+                  );
+                } else {
+                  Navigator.pushNamed(
+                    context,
+                    '/report',
+                    arguments: {
+                      'userId': userId,
+                      'productId': int.parse(
+                        product!['id_producto'].toString(),
+                      ), // Conversión a int
+                    },
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Denunciar Producto'),
             ),
           ],
         ),
