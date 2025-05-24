@@ -130,7 +130,11 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: Icon(Icons.upload_file),
               title: Text('Subir producto'),
               onTap: () {
-                Navigator.pushNamed(context, '/upload');
+                Navigator.pushNamed(
+                  context,
+                  '/upload',
+                  arguments: {'userId': userId},
+                );
               },
             ),
             ListTile(
@@ -144,13 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     'userId': userId,
                   }, // Asegúrate de pasar el userId aquí
                 );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.notifications),
-              title: Text('Notificaciones'),
-              onTap: () {
-                Navigator.pushNamed(context, '/notifications');
               },
             ),
             ListTile(
@@ -221,108 +218,120 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // Productos en formato de tarjetas
           Expanded(
-            child: _filteredProducts.isEmpty
-                ? Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                    padding: EdgeInsets.all(8.0),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 8.0,
-                      mainAxisSpacing: 8.0,
-                      childAspectRatio: 0.7, // Ajusta este valor según sea necesario
-                    ),
-                    itemCount: _filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = _filteredProducts[index];
-                      return Card(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/productDetail',
-                              arguments: [product, userId],
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Imagen del producto
-                              if (product['imagenes'] != null)
-                                Container(
-                                  height: 150, // Altura fija para la imagen
-                                  width: double.infinity,
-                                  child: Image.network(
-                                    product['imagenes'],
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (BuildContext context,
+            child:
+                _filteredProducts.isEmpty
+                    ? Center(child: CircularProgressIndicator())
+                    : GridView.builder(
+                      padding: EdgeInsets.all(8.0),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio:
+                            0.7, // Ajusta este valor según sea necesario
+                      ),
+                      itemCount: _filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _filteredProducts[index];
+                        return Card(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/productDetail',
+                                arguments: [product, userId],
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Imagen del producto
+                                if (product['imagenes'] != null)
+                                  Container(
+                                    height: 150, // Altura fija para la imagen
+                                    width: double.infinity,
+                                    child: Image.network(
+                                      product['imagenes'],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (
+                                        BuildContext context,
                                         Widget child,
-                                        ImageChunkEvent? loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
+                                        ImageChunkEvent? loadingProgress,
+                                      ) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            value:
+                                                loadingProgress
+                                                            .expectedTotalBytes !=
+                                                        null
+                                                    ? loadingProgress
+                                                            .cumulativeBytesLoaded /
+                                                        loadingProgress
+                                                            .expectedTotalBytes!
+                                                    : null,
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (
+                                        BuildContext context,
+                                        Object error,
+                                        StackTrace? stackTrace,
+                                      ) {
+                                        return Icon(
+                                          Icons.error,
+                                        ); // Muestra un icono de error si la imagen no se puede cargar
+                                      },
+                                    ),
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Nombre del producto
+                                      Text(
+                                        product['nombre'],
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                      );
-                                    },
-                                    errorBuilder: (BuildContext context,
-                                        Object error, StackTrace? stackTrace) {
-                                      return Icon(Icons.error); // Muestra un icono de error si la imagen no se puede cargar
-                                    },
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 4),
+                                      // Precio
+                                      Text(
+                                        '${product['precio']}€',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      // Marca
+                                      Text(
+                                        'Marca: ${product['nombre_marca']}',
+                                        style: TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 4),
+                                      // Categoría
+                                      Text(
+                                        'Categoría: ${product['categoria']}',
+                                        style: TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Nombre del producto
-                                    Text(
-                                      product['nombre'],
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    SizedBox(height: 4),
-                                    // Precio
-                                    Text(
-                                      '${product['precio']}€',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    // Marca
-                                    Text(
-                                      'Marca: ${product['nombre_marca']}',
-                                      style: TextStyle(fontSize: 14),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    SizedBox(height: 4),
-                                    // Categoría
-                                    Text(
-                                      'Categoría: ${product['categoria']}',
-                                      style: TextStyle(fontSize: 14),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

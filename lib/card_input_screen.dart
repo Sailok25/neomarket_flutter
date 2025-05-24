@@ -7,6 +7,10 @@ class CardInputScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    final userId = args?['userId'] as int?;
+    final cartItems = args?['cartItems'] as List<Map<String, dynamic>>?;
+
     return Scaffold(
       appBar: AppBar(title: Text('Introduce tu tarjeta')),
       body: Padding(
@@ -121,7 +125,11 @@ class CardInputScreen extends StatelessWidget {
                 Navigator.pushNamed(
                   context,
                   '/resultPayment',
-                  arguments: number % 2 != 0,
+                  arguments: {
+                    'isSuccess': number % 2 != 0,
+                    'userId': userId,
+                    'cartItems': cartItems,
+                  },
                 );
               },
               child: Text('Pagar'),

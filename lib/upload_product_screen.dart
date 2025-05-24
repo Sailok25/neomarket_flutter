@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:neomarket_flutter/conexio.dart';
+import 'dart:io';
 
 class UploadProductScreen extends StatefulWidget {
   @override
@@ -10,24 +10,43 @@ class UploadProductScreen extends StatefulWidget {
 
 class _UploadProductScreenState extends State<UploadProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  File? _image;
-
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
-  final TextEditingController brandController = TextEditingController();
-  final TextEditingController unitsController = TextEditingController();
-
-  String? _selectedCategory;
-  String? _selectedCondition;
-  DateTime? _publicationDate;
-
   final DatabaseConnection _dbConnection = DatabaseConnection();
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  int? userId;
+  List<Map<String, dynamic>> _brands = [];
+  int? _selectedBrand;
+  File? _image;
+  final picker = ImagePicker();
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _unitsController = TextEditingController();
+  String? _selectedCategory;
+  String? _selectedCondition;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBrands();
+  }
+
+  Future<void> _fetchBrands() async {
+    try {
+      var result = await _dbConnection.executeQuery('SELECT id_marca, nombre_marca FROM nm_marcas');
+      if (result != null && result.rows.isNotEmpty) {
+        setState(() {
+          _brands = result.rows.map((row) => row.assoc()).toList();
+          print('Brands fetched: $_brands'); // Debug print
+        });
+      }
+    } catch (e) {
+      print('Error fetching brands: $e');
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -35,174 +54,187 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
     }
   }
 
-  Future<void> _uploadProduct() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        var result = await _dbConnection.executeQuery(
-          '''
-          INSERT INTO nm_productos (id_vendedor, nombre, descripcion, imagenes, categoria, marca, estado, fecha_publicacion, precio, unidades)
-          VALUES (:id_vendedor, :name, :description, :image, :category, :brand, :condition, :publicationDate, :price, :units)
-          ''',
-          {
-            'id_vendedor': 1, // Aquí deberías obtener el ID del vendedor actual
-            'name': nameController.text,
-            'description': descriptionController.text,
-            'image': _image?.path, // Guardar la ruta de la imagen
-            'category': _selectedCategory,
-            'brand': brandController.text,
-            'condition': _selectedCondition,
-            'publicationDate': _publicationDate?.toIso8601String(),
-            'price': priceController.text,
-            'units': unitsController.text,
-          },
-        );
+Future<void> _submitForm() async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      String? imagePath = _image != null ? _image!.path : null;
+      print('Submitting form with data:');
+      print('User ID: $userId');
+      print('Name: ${_nameController.text}');
+      print('Description: ${_descriptionController.text}');
+      print('Image Path: $imagePath');
+      print('Category: $_selectedCategory');
+      print('Brand: $_selectedBrand');
+      print('Condition: $_selectedCondition');
+      print('Price: ${_priceController.text}');
+      print('Units: ${_unitsController.text}');
 
-        if (result != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Producto subido exitosamente')),
-          );
-          Navigator.pop(context); // Volver a la pantalla anterior
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al subir el producto. Inténtalo de nuevo.')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      await _dbConnection.executeQuery(
+        'INSERT INTO nm_productos (id_vendedor, nombre, descripcion, imagenes, categoria, marca, estado, estado_anuncio, fecha_publicacion, precio, unidades) VALUES (:id_vendedor, :nombre, :descripcion, :imagenes, :categoria, :marca, :estado, :estado_anuncio, :fecha_publicacion, :precio, :unidades)',
+        {
+          'id_vendedor': userId,
+          'nombre': _nameController.text,
+          'descripcion': _descriptionController.text,
+          'imagenes': imagePath,
+          'categoria': _selectedCategory,
+          'marca': _selectedBrand,
+          'estado': _selectedCondition,
+          'estado_anuncio': 'activo',
+          'fecha_publicacion': DateTime.now().toString(),
+          'precio': double.parse(_priceController.text),
+          'unidades': int.parse(_unitsController.text),
+        },
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Producto subido correctamente')),
+      );
+    } catch (e) {
+      print('Error submitting form: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir el producto: $e')),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    if (args != null) {
+      userId = int.tryParse(args['userId'].toString());
+      print('User ID: $userId'); // Debug print
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text('Subir Producto')),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+      appBar: AppBar(
+        title: Text('Subir Producto'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
+          child: ListView(
             children: [
-              // Imagen del producto
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: _image == null
-                      ? Icon(Icons.add_a_photo, size: 40)
-                      : Image.file(_image!, fit: BoxFit.cover),
-                ),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Nombre del Producto'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa el nombre del producto';
+                  }
+                  return null;
+                },
               ),
-              SizedBox(height: 16),
-
-              // Campos de texto
-              _buildTextField('Nombre del producto', nameController),
-              _buildTextField('Descripción', descriptionController),
-              _buildTextField('Precio', priceController, keyboardType: TextInputType.number),
-              _buildTextField('Marca', brandController),
-              _buildTextField('Unidades', unitsController, keyboardType: TextInputType.number),
-
-              // Categoría
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Descripción'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa la descripción del producto';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _priceController,
+                decoration: InputDecoration(labelText: 'Precio'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa el precio del producto';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _unitsController,
+                decoration: InputDecoration(labelText: 'Unidades'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa las unidades del producto';
+                  }
+                  return null;
+                },
+              ),
               DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Categoría'),
                 value: _selectedCategory,
-                items: [
-                  'Accesorios',
-                  'Ropa',
-                  'Hogar',
-                  'Deporte',
-                  'Automovil',
-                  'Tecnologia'
-                ].map((category) {
-                  return DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
+                decoration: InputDecoration(labelText: 'Categoría'),
+                items: ['Accesorios', 'Ropa', 'Hogar', 'Deporte', 'Automovil', 'Tecnologia']
+                    .map((category) => DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        ))
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
                   });
                 },
-                validator: (value) => value == null ? 'Selecciona una categoría' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor selecciona una categoría';
+                  }
+                  return null;
+                },
               ),
-
-              // Estado del producto
+              DropdownButtonFormField<int>(
+                value: _selectedBrand,
+                decoration: InputDecoration(labelText: 'Marca'),
+                items: _brands
+                    .map((brand) => DropdownMenuItem<int>(
+                          value: int.parse(brand['id_marca'].toString()), // Asegúrate de que el valor sea un int
+                          child: Text(brand['nombre_marca']),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedBrand = value;
+                    print('Selected Brand ID: $value'); // Debug print
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor selecciona una marca';
+                  }
+                  return null;
+                },
+              ),
               DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Estado del producto'),
                 value: _selectedCondition,
-                items: [
-                  'precintado',
-                  'usado',
-                  'muy usado',
-                  'despiece'
-                ].map((condition) {
-                  return DropdownMenuItem<String>(
-                    value: condition,
-                    child: Text(condition),
-                  );
-                }).toList(),
+                decoration: InputDecoration(labelText: 'Estado del Producto'),
+                items: ['precintado', 'usado', 'muy usado', 'despiece']
+                    .map((condition) => DropdownMenuItem<String>(
+                          value: condition,
+                          child: Text(condition),
+                        ))
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedCondition = value;
                   });
                 },
-                validator: (value) => value == null ? 'Selecciona un estado' : null,
-              ),
-
-              // Fecha de publicación
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Fecha de publicación (YYYY-MM-DD)'),
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null) {
-                    setState(() {
-                      _publicationDate = pickedDate;
-                    });
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor selecciona el estado del producto';
                   }
+                  return null;
                 },
-                validator: (value) => _publicationDate == null ? 'Selecciona una fecha' : null,
-                readOnly: true,
-                controller: TextEditingController(
-                  text: _publicationDate == null ? '' : _publicationDate!.toIso8601String().split('T')[0],
-                ),
               ),
-
               SizedBox(height: 20),
-
               ElevatedButton(
-                onPressed: _uploadProduct,
+                onPressed: _pickImage,
+                child: Text('Seleccionar Imagen'),
+              ),
+              if (_image != null) Image.file(_image!),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _submitForm,
                 child: Text('Subir Producto'),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller, {TextInputType keyboardType = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(),
-        ),
-        validator: (value) => value == null || value.isEmpty ? 'Este campo es obligatorio' : null,
       ),
     );
   }
