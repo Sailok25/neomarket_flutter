@@ -53,25 +53,27 @@ class ResultPaymentScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _updateProductStock(List<Map<String, dynamic>> cartItems) async {
-    try {
-      for (var item in cartItems) {
-        int productId = item['id_producto'];
-        int quantity = item['cantidad'];
+Future<void> _updateProductStock(List<Map<String, dynamic>> cartItems) async {
+  try {
+    for (var item in cartItems) {
+      // Asegúrate de que los valores sean enteros
+      int productId = int.parse(item['id_producto'].toString());
+      int quantity = int.parse(item['cantidad'].toString());
 
-        await _dbConnection.executeQuery(
-          '''
-          UPDATE nm_productos
-          SET unidades = unidades - :quantity
-          WHERE id_producto = :productId
-          ''',
-          {'quantity': quantity, 'productId': productId},
-        );
-      }
-    } catch (e) {
-      print('Error updating product stock: $e');
+      await _dbConnection.executeQuery(
+        '''
+        UPDATE nm_productos
+        SET unidades = unidades - :quantity
+        WHERE id_producto = :productId
+        ''',
+        {'quantity': quantity, 'productId': productId},
+      );
     }
+  } catch (e) {
+    print('Error updating product stock: $e');
   }
+}
+
 
   Future<void> _clearUserCart(int userId) async {
     try {
