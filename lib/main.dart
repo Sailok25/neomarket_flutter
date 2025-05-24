@@ -13,7 +13,6 @@ import 'card_input_screen.dart';
 import 'result_payment_screen.dart';
 import 'help_screen.dart';
 import 'notifications_screen.dart';
-import 'report_screen.dart';
 
 void main() {
   runApp(NeoMarketApp());
@@ -70,21 +69,6 @@ class NeoMarketApp extends StatelessWidget {
         '/resultPayment': (context) => ResultPaymentScreen(),
         '/help': (context) => HelpScreen(),
         '/notifications': (context) => NotificationsScreen(),
-        '/report': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map?;
-          if (args != null) {
-            return ReportScreen(
-              userId: args['userId'],
-              productId: args['productId'],
-            );
-          } else {
-            return Scaffold(
-              body: Center(
-                child: Text('Error: No se proporcionaron argumentos válidos.'),
-              ),
-            );
-          }
-        },
       },
     );
   }

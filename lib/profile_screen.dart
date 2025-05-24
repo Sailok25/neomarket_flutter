@@ -72,9 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (result != null && result.rows.isNotEmpty) {
         setState(() {
-          favoritesCount = int.parse(
-            result.rows.first.assoc()['count'].toString(),
-          );
+          favoritesCount = int.parse(result.rows.first.assoc()['count'].toString());
         });
       }
     } catch (e) {
@@ -85,7 +83,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(
+        title: const Text('Perfil'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -97,19 +97,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const CircleAvatar(
                     radius: 50,
-                    backgroundImage: NetworkImage(
-                      'https://via.placeholder.com/150',
-                    ),
+                    backgroundImage: NetworkImage('https://via.placeholder.com/150'),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    userData != null
-                        ? '${userData!['nombre']} ${userData!['apellido']}'
-                        : 'Nombre Usuario',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    userData != null ? '${userData!['nombre']} ${userData!['apellido']}' : 'Nombre Usuario',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     userData != null ? userData!['email'] : 'user@example.com',
@@ -135,116 +128,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // User Products
             SizedBox(
-              height:
-                  MediaQuery.of(context).size.height *
-                  0.6, // Ajusta la altura según sea necesario
-              child:
-                  userProducts.isEmpty
-                      ? const Center(
-                        child: Text("Aún no has subido ningún producto"),
-                      )
-                      : GridView.builder(
-                        padding: const EdgeInsets.all(8.0),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 8.0,
-                              mainAxisSpacing: 8.0,
-                              childAspectRatio: 0.7,
-                            ),
-                        itemCount: userProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = userProducts[index];
-                          return Card(
-                            child: InkWell(
-                              onTap: () {
-                                // Navegar a la pantalla de detalles del producto
-                                Navigator.pushNamed(
-                                  context,
-                                  '/productDetail',
-                                  arguments: [product, userData?['id_usuario']],
-                                );
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Imagen del producto
-                                  if (product['imagenes'] != null)
-                                    Container(
-                                      height: 150, // Altura fija para la imagen
-                                      width: double.infinity,
-                                      child: Image.network(
-                                        product['imagenes'],
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (
-                                          BuildContext context,
+              height: MediaQuery.of(context).size.height * 0.6, // Ajusta la altura según sea necesario
+              child: userProducts.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.7,
+                      ),
+                      itemCount: userProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = userProducts[index];
+                        return Card(
+                          child: InkWell(
+                            onTap: () {
+                              // Navegar a la pantalla de detalles del producto
+                              Navigator.pushNamed(
+                                context,
+                                '/productDetail',
+                                arguments: [product, userData?['id_usuario']],
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Imagen del producto
+                                if (product['imagenes'] != null)
+                                  Container(
+                                    height: 150, // Altura fija para la imagen
+                                    width: double.infinity,
+                                    child: Image.network(
+                                      product['imagenes'],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (BuildContext context,
                                           Widget child,
-                                          ImageChunkEvent? loadingProgress,
-                                        ) {
-                                          if (loadingProgress == null)
-                                            return child;
-                                          return const Center(
-                                            child: CircularProgressIndicator(),
-                                          );
-                                        },
-                                        errorBuilder: (
-                                          BuildContext context,
-                                          Object error,
-                                          StackTrace? stackTrace,
-                                        ) {
-                                          return const Icon(
-                                            Icons.error,
-                                          ); // Muestra un icono de error si la imagen no se puede cargar
-                                        },
-                                      ),
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Nombre del producto
-                                        Text(
-                                          product['nombre'] ?? 'Sin nombre',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Precio
-                                        Text(
-                                          '${product['precio']}€',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Marca
-                                        Text(
-                                          'Marca: ${product['nombre_marca'] ?? 'Sin marca'}',
-                                          style: const TextStyle(fontSize: 14),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Categoría
-                                        Text(
-                                          'Categoría: ${product['categoria'] ?? 'Sin categoría'}',
-                                          style: const TextStyle(fontSize: 14),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
+                                          ImageChunkEvent? loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      },
+                                      errorBuilder: (BuildContext context,
+                                          Object error, StackTrace? stackTrace) {
+                                        return const Icon(Icons.error); // Muestra un icono de error si la imagen no se puede cargar
+                                      },
                                     ),
                                   ),
-                                ],
-                              ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Nombre del producto
+                                      Text(
+                                        product['nombre'] ?? 'Sin nombre',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Precio
+                                      Text(
+                                        '${product['precio']}€',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Marca
+                                      Text(
+                                        'Marca: ${product['nombre_marca'] ?? 'Sin marca'}',
+                                        style: const TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Categoría
+                                      Text(
+                                        'Categoría: ${product['categoria'] ?? 'Sin categoría'}',
+                                        style: const TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -259,7 +237,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           value,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        Text(label, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
       ],
     );
   }
